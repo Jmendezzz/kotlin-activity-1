@@ -5,9 +5,10 @@ import models.Product
 
 interface OrderService {
     fun createOrder(customerId: Number): Order
-    fun addItemToOrder(order: Order, product: Product, quantity: Int)
-    fun removeItemFromOrder(order: Order, productId: Long)
-    fun calculateSubtotal(order: Order, menu: List<Product>): Double
-    fun calculateTotalWithDiscount(order: Order, menu: List<Product>): Double
-    fun showOrder(order: Order, menu: List<Product>)
+    fun addItemToOrder(orderId: Number, product: Product, quantity: Int)
+    fun removeItemFromOrder(orderId: Number, productId: Long)
+    fun calculateSubtotal(orderId: Number, menu: List<Product>): Double
+    fun calculateTotalWithDiscount(orderId: Number, menu: List<Product>): Double
+    fun showOrder(orderId: Number, menu: List<Product>)
+    fun getAllOrders(): List<Order>
 }

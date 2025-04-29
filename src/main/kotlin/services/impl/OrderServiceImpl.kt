@@ -7,17 +7,21 @@ import services.OrderService
 
 class OrderServiceImpl : OrderService {
     private var nextOrderId = 1
+    private val orders = mutableListOf<Order>()
 
     override fun createOrder(customerId: Number): Order {
-        return Order(
+        val newOrder = Order(
             id = nextOrderId++,
             customerId = customerId,
             orderItems = mutableListOf(),
             totalAmount = 0.0
         )
+        orders.add(newOrder)
+        return newOrder
     }
 
-    override fun addItemToOrder(order: Order, product: Product, quantity: Int) {
+    override fun addItemToOrder(orderId: Number, product: Product, quantity: Int) {
+        val order = findOrder(orderId) ?: return
         val existingItem = order.orderItems.find { it.productId == product.id.toLong() }
         if (existingItem != null) {
             existingItem.quantity += quantity
@@ -26,27 +30,27 @@ class OrderServiceImpl : OrderService {
         }
     }
 
-
-    override fun removeItemFromOrder(order: Order, productId: Long) {
-        val mutableItems = order.orderItems.toMutableList()
-        mutableItems.removeIf { it.productId == productId }
-        orderItemsSetter(order, mutableItems)
+    override fun removeItemFromOrder(orderId: Number, productId: Long) {
+        val order = findOrder(orderId) ?: return
+        order.orderItems.removeIf { it.productId == productId }
     }
 
-    override fun calculateSubtotal(order: Order, menu: List<Product>): Double {
+    override fun calculateSubtotal(orderId: Number, menu: List<Product>): Double {
+        val order = findOrder(orderId) ?: return 0.0
         return order.orderItems.sumOf { item ->
             val product = menu.find { it.id.toLong() == item.productId }
             (product?.price ?: 0.0) * item.quantity
         }
     }
 
-    override fun calculateTotalWithDiscount(order: Order, menu: List<Product>): Double {
-        val subtotal = calculateSubtotal(order, menu)
+    override fun calculateTotalWithDiscount(orderId: Number, menu: List<Product>): Double {
+        val subtotal = calculateSubtotal(orderId, menu)
         return if (subtotal > 100_000) subtotal * 0.90 else subtotal
     }
 
-    override fun showOrder(order: Order, menu: List<Product>) {
-        if (order.orderItems.isEmpty()) {
+    override fun showOrder(orderId: Number, menu: List<Product>) {
+        val order = findOrder(orderId)
+        if (order == null || order.orderItems.isEmpty()) {
             println("El pedido está vacío.")
             return
         }
@@ -58,14 +62,15 @@ class OrderServiceImpl : OrderService {
                 println("- ${product.name} x ${item.quantity} = ${product.price * item.quantity} COP")
             }
         }
-        println("Subtotal: ${calculateSubtotal(order, menu)} COP")
-        println("Total con descuento (si aplica): ${calculateTotalWithDiscount(order, menu)} COP")
+        println("Subtotal: ${calculateSubtotal(orderId, menu)} COP")
+        println("Total con descuento (si aplica): ${calculateTotalWithDiscount(orderId, menu)} COP")
     }
 
-    private fun orderItemsSetter(order: Order, newItems: List<OrderItem>) {
-        val orderClass = order.javaClass
-        val field = orderClass.getDeclaredField("orderItems")
-        field.isAccessible = true
-        field.set(order, newItems)
+    override fun getAllOrders(): List<Order> {
+        return orders
+    }
+
+    private fun findOrder(orderId: Number): Order? {
+        return orders.find { it.id.toInt() == orderId.toInt() }
     }
 }
